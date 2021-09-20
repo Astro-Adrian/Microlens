@@ -1,0 +1,52 @@
+delta_log_s = 0.003
+delta_log_q = 0.07
+# grid_log_s = np.hstack(
+#     (np.arange(
+#         np.log10(s_minus) - 0.1, np.log10(s_minus) + 0.1, delta_log_s),
+#     np.arange(
+#         np.log10(s_plus) - 0.1, np.log10(s_plus) + 0.1, delta_log_s)))
+grid_log_s = np.arange(np.log10(.5),np.log10(1.5),delta_log_s)
+grid_log_q = np.arange(-5, -1, delta_log_q)
+
+grid = np.empty((5, len(grid_log_s) * len(grid_log_q)))
+i = 0
+#print('{0:>12} {1:>6} {2:>7} {3:>7} {4:>7}'.format('chi2', 's', 'q', 'alpha', 'rho'))
+def grid_fit(tnot,unot,tE):
+for log_s in grid_log_s:
+    for log_q in grid_log_q:
+        # The major and minor images are on opposite sides of the lens:
+        if log_s < 0.:
+            alpha = alpha_new + 180.
+        else:
+            alpha = alpha_new
+
+        # Define the Model and Event
+        planet_model = mm.Model({
+            't_0': tnot,
+            'u_0': unot,
+            't_E': tE
+            'rho': 10**(-2),
+            's': 10.**log_s,
+            'q': 10.**log_q,
+            'alpha': alpha})
+        planet_model.set_magnification_methods(magnification_methods)
+        planet_event = mm.Event(datasets = [H_data,K_data], model=planet_model)
+
+        # Fit the Event
+        result = fit_model(planet_event, parameters_to_fit=['rho', 'alpha'])
+        if result.success:
+            chi2 = planet_event.get_chi2()
+        else:
+            chi2 = np.inf
+
+        # Print and store result of fit
+        print('{0:12.2f} {1:6.4f} {2:7.5f} {3:7.2f} {4:7.5f}'.format(
+            chi2, 10.**log_s, 10.**log_q,
+            planet_event.model.parameters.alpha, planet_event.model.parameters.rho))
+
+        grid[0, i] = log_s
+        grid[1, i] = log_q
+        grid[2, i] = chi2
+        grid[3, i] = planet_event.model.parameters.alpha.value
+        grid[4, i] = planet_event.model.parameters.rho
+        i += 1
