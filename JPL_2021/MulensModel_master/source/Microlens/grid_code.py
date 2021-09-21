@@ -8,8 +8,8 @@ import fit_func as fu
 
 
 
-delta_log_s = 0.005
-delta_log_q = 0.03
+delta_log_s = 0.05
+delta_log_q = 0.3
 # grid_log_s = np.hstack(
 #     (np.arange(
 #         np.log10(s_minus) - 0.1, np.log10(s_minus) + 0.1, delta_log_s),
@@ -136,18 +136,54 @@ def grid_fit(tnot,unot,tEnot,anot):
     best_fit_event = mm.Event(datasets=[dat.H_data,dat.K_data], model=best_fit_model)
     print(best_fit_event.model)
     print('chi2: {0}'.format(best_fit_event.get_chi2()))
-    pl.figure(figsize=(10,10))
-    best_fit_event.plot_model(t_range = [2457900,2458800],subtract_2450000=True, color='black',label='best',zorder=10)
-    best_fit_event.plot_data(subtract_2450000=True, s=5, zorder=10)
-    pl.xlim(8600,8800)
-    #pl.title(filename + ' grid model zoom')
-    #pl.savefig(filename + '_grid_model_zoom', dpi=100)
-    pl.show()
+    for j, index in enumerate(index_sorted[1:n_best]):
+        model = make_grid_model(index)
+        model.plot_lc(t_range= [2457900,2458800],subtract_2450000=True, color=colors[j - 1], lw=2)
+        best_fit_event.plot_data(subtract_2450000=True, s=10, zorder=0,marker_list = 'o',markerfacecolor='none')
+        print('Other best fit models')
+        print(model)
 
-    pl.figure(figsize=(10,10))
-    best_fit_event.plot_model(t_range = [2457900,2458800],subtract_2450000=True, color='black',label='best',zorder=10)
-    best_fit_event.plot_data(subtract_2450000=True, s=5, zorder=10)
-    pl.xlim(8620,8690)
-        #pl.title(filename + ' grid model zoom')
-        #pl.savefig(filename + '_grid_model_zoom', dpi=100)
-    pl.show()
+    # Refine the n_best minima to get the best-fit solution
+    parameters_to_fit = ['t_0', 'u_0', 't_E', 'rho', 'alpha', 's', 'q'] #mcmc
+
+    fits = []
+    for index in index_sorted[:n_best]:
+        model = make_grid_model(index)
+        event = mm.Event(datasets=[dat.H_data,dat.K_data], model=model)
+        print(event.model)
+        result = fu.fit_model(
+        event, parameters_to_fit=parameters_to_fit)
+        fits.append([result.fun, result.x])
+        print(result)
+
+    chi2 = [x[0] for x in fits]
+    fit_parameters = [x[1] for x in fits]
+    index_best = np.argmin(chi2)
+
+    # Setup the model and event
+    parameters = {}
+    for i, parameter in enumerate(parameters_to_fit):
+        parameters[parameter] = fit_parameters[index_best][i]
+    final_model = mm.Model(parameters)
+    final_model.set_magnification_methods(dat.magnification_methods)
+    final_event = mm.Event(datasets=[dat.H_data,dat.K_data], model=final_model)
+    print(final_event.model)
+    print('chi2: {0}'.format(final_event.get_chi2()))
+
+
+
+    # pl.figure(figsize=(10,10))
+    # best_fit_event.plot_model(t_range = [2457900,2458800],subtract_2450000=True, color='black',label='best',zorder=10)
+    # best_fit_event.plot_data(subtract_2450000=True, s=5, zorder=10)
+    # pl.xlim(8600,8800)
+    # #pl.title(filename + ' grid model zoom')
+    # #pl.savefig(filename + '_grid_model_zoom', dpi=100)
+    # pl.show()
+    #
+    # pl.figure(figsize=(10,10))
+    # best_fit_event.plot_model(t_range = [2457900,2458800],subtract_2450000=True, color='black',label='best',zorder=10)
+    # best_fit_event.plot_data(subtract_2450000=True, s=5, zorder=10)
+    # pl.xlim(8620,8690)
+    #     #pl.title(filename + ' grid model zoom')
+    #     #pl.savefig(filename + '_grid_model_zoom', dpi=100)
+    # pl.show()
