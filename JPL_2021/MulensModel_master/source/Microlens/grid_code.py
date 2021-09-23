@@ -5,11 +5,22 @@ from MulensModel.utils import Utils
 import matplotlib.pyplot as pl
 import est_params as dat
 import fit_func as fu
+class color:
+   PURPLE = '\033[1;35;48m'
+   CYAN = '\033[1;36;48m'
+   BOLD = '\033[1;37;48m'
+   BLUE = '\033[1;34;48m'
+   GREEN = '\033[1;32;48m'
+   YELLOW = '\033[1;33;48m'
+   RED = '\033[1;31;48m'
+   BLACK = '\033[1;30;48m'
+   UNDERLINE = '\033[4;37;48m'
+   END = '\033[1;37;0m'
 
 
 
-delta_log_s = 0.05
-delta_log_q = 0.3
+delta_log_s = 0.04
+delta_log_q = 0.2
 # grid_log_s = np.hstack(
 #     (np.arange(
 #         np.log10(s_minus) - 0.1, np.log10(s_minus) + 0.1, delta_log_s),
@@ -167,10 +178,21 @@ def grid_fit(tnot,unot,tEnot,anot):
     final_model = mm.Model(parameters)
     final_model.set_magnification_methods(dat.magnification_methods)
     final_event = mm.Event(datasets=[dat.H_data,dat.K_data], model=final_model)
-    print(final_event.model)
+    print(color.BLUE +'Final best fit model = '+ color.END,final_event.model)
     print('chi2: {0}'.format(final_event.get_chi2()))
+    pl.figure(figsize=(10,10))
+    pl.axes ([0.09 , 0.08 , 0.9 , 0.9])
+    final_event.plot_data (subtract_2450000 = True , label_list =['dat.H_data','dat.K_data'] ,color_list=['red','black'] ,
+    zorder_list =[2 , 1] , s =6)
+    final_event.plot_model(subtract_2450000 = True , lw=2, color = 'blue',label = 'best fit')
+    pl.xlim(8620,8685)
+    pl.legend ( loc ='best')
 
-
+    pl.axes([0.17 , 0.7 , 0.3 , 0.2]) # Figure inset stars here .
+    final_model.plot_trajectory (caustics = True)
+    pl.xlim ( -0.20 , 0.9)
+    pl.ylim ( -0.2 , 0.2)
+    pl.show()
 
     # pl.figure(figsize=(10,10))
     # best_fit_event.plot_model(t_range = [2457900,2458800],subtract_2450000=True, color='black',label='best',zorder=10)

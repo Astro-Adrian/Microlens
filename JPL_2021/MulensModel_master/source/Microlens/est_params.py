@@ -23,15 +23,20 @@ H_data = mm.MulensData(file_name=casu_data[0]) #used only for the mulens code
 K_data = mm.MulensData(file_name=casu_data[2]) #used only for the mulens code
 
 #
+ex_start = 2458658.
+ex_stop = 2458690.
 start = 2458658.
-stop = 2458670.
+stop = 2458690.
+
+# start = 2458660.
+# stop = 2458690.
 # # magnification_methods = [start, 'VBBL', stop]
-#
+
 magnification_methods = [2457820, 'point_source_point_lens', start, 'VBBL', stop,
     'point_source_point_lens', 2458750.]
 
   # Flag data related to the planet
-flag_planet = (K_data.time > start) & (K_data.time < stop) | np.isnan(K_data.err_mag)
+flag_planet = (K_data.time > ex_start) & (K_data.time < ex_stop) | np.isnan(K_data.err_mag)
 
 # Exclude those data from the fitting (for no
 K_data.bad = flag_planet
