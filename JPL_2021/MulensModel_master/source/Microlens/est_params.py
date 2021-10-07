@@ -12,51 +12,48 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord
 #
 from glob import glob
-dir_casu = '/Users/adrianhernandez/JPL_2021/ukirt_casu/'
-casu_data = glob(f"{dir_casu}/*C58505*.txt")
+dir = '/Users/adrianhernandez/JPL_2021/ukirt_psf/'
+data = glob(f"{dir}/*P71224*.txt")
 #
 # # fln = casu_data[0][44:77]
 # # print(fln)
-ukirt_casu_H = np.loadtxt(casu_data[0], usecols=range(3)) #H band data
-ukirt_casu_K = np.loadtxt(casu_data[2], usecols=range(3)) # K band data
-H_data = mm.MulensData(file_name=casu_data[0]) #used only for the mulens code
-K_data = mm.MulensData(file_name=casu_data[2]) #used only for the mulens code
+ukirt_H = np.loadtxt(data[0], usecols=range(3)) #H band data
+ukirt_K = np.loadtxt(data[2], usecols=range(3)) # K band data
+H_data = mm.MulensData(file_name=data[0]) #used only for the mulens code
+K_data = mm.MulensData(file_name=data[2]) #used only for the mulens code
 
 #
 ex_start = 2458658.
-ex_stop = 2458690.
-start = 2458658.
-stop = 2458690.
-
-# start = 2458660.
-# stop = 2458690.
+ex_stop = 2458670.
+start = 2458660.
+stop = 2458710.
 # # magnification_methods = [start, 'VBBL', stop]
 
 magnification_methods = [2457820, 'point_source_point_lens', start, 'VBBL', stop,
     'point_source_point_lens', 2458750.]
 
   # Flag data related to the planet
-flag_planet = (K_data.time > ex_start) & (K_data.time < ex_stop) | np.isnan(K_data.err_mag)
+flag_planet = (H_data.time > ex_start) & (H_data.time < ex_stop) | np.isnan(H_data.err_mag)
 
 # Exclude those data from the fitting (for no
-K_data.bad = flag_planet
+H_data.bad = flag_planet
 
-time_flag = (K_data.time[np.invert(flag_planet)])
-mag_flag = (K_data.mag[np.invert(flag_planet)])
-err_flag = (K_data.err_mag[np.invert(flag_planet)])
+time_flag = (H_data.time[np.invert(flag_planet)])
+mag_flag = (H_data.mag[np.invert(flag_planet)])
+err_flag = (H_data.err_mag[np.invert(flag_planet)])
 
 
 #Estimate for t0
-index_t_0 = np.argmin(K_data.mag)
-t_o = K_data.time[index_t_0]
+index_t_0 = np.argmin(H_data.mag)
+t_o = H_data.time[index_t_0]
 
 #Estimate for u0
-baseline_mag = np.min([K_data.mag[0],K_data.mag[-1]]) # A crude estimate
-A_max =10.**((K_data.mag[index_t_0] - baseline_mag) / -2.5)
+baseline_mag = np.min([H_data.mag[0],H_data.mag[-1]]) # A crude estimate
+A_max =10.**((H_data.mag[index_t_0] - baseline_mag) / -2.5)
 u_o = 1. / A_max # True in the high-magnification limit
 
 #Estimate for tE
-t_1 = np.interp( baseline_mag - 0.3, K_data.mag[index_t_0:0:-1], K_data.time[index_t_0:0:-1])
+t_1 = np.interp( baseline_mag - 0.3, H_data.mag[index_t_0:0:-1], H_data.time[index_t_0:0:-1])
 t_e = np.abs((t_o - t_1) / np.sqrt(1. - u_o**2))
 
 

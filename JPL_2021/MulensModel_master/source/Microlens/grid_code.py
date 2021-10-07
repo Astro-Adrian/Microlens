@@ -19,19 +19,22 @@ class color:
 
 
 
-delta_log_s = 0.04
-delta_log_q = 0.2
+s_step = 70
+q_step = 70
 # grid_log_s = np.hstack(
 #     (np.arange(
 #         np.log10(s_minus) - 0.1, np.log10(s_minus) + 0.1, delta_log_s),
 #     np.arange(
 #         np.log10(s_plus) - 0.1, np.log10(s_plus) + 0.1, delta_log_s)))
-grid_log_s = np.arange(np.log10(.6),np.log10(1.666),delta_log_s)
-grid_log_q = np.arange(-5, -1, delta_log_q)
+# grid_log_s = np.arange(np.log10(.6),np.log10(1.666),delta_log_s)
+# grid_log_q = np.arange(-5, -1, delta_log_q)
 # print(grid_log_s)
 # print(grid_log_q)
 
+grid_log_s = np.linspace(np.log10(.6),np.log10(1.666),s_step)
+grid_log_q = np.linspace(-4, -.3,q_step)
 
+grid_save = []
 grid = np.empty((5, len(grid_log_s) * len(grid_log_q)))
 counter = 0
 print('{0:>12} {1:>6} {2:>7} {3:>7} {4:>7}'.format('chi2', 's', 'q', 'alpha', 'rho'))
@@ -61,7 +64,7 @@ def grid_fit(tnot,unot,tEnot,anot):
             if result.success:
                 chi2 = planet_event.get_chi2()
             else:
-                chi2 = np.inf
+                chi2 = 40000#np.inf
 
             # Print and store result of fit
             print('{0:12.2f} {1:6.4f} {2:7.5f} {3:7.2f} {4:7.5f}'.format(
@@ -74,20 +77,28 @@ def grid_fit(tnot,unot,tEnot,anot):
             grid[3, counter] = planet_event.model.parameters.alpha.value
             grid[4, counter] = planet_event.model.parameters.rho
             counter += 1
-
-
+            # np.savetxt('test_grid.txt', np.column_stack([grid_save.append(chi2),grid_save.append(log_s),
+            # grid_save.append(log_q),grid_save.append(planet_event.model.parameters.alpha.value),
+            # grid_save.append(planet_event.model.parameters.rho)]))
+    save_chi = np.array(grid[2,:])
+    save_s = np.array(grid[0,:])
+    save_q = np.array(grid[1,:])
+    save_alpha = np.array(grid[3,:])
+    save_rho = np.array(grid[4,:])
     index_best = np.argmin(np.array(grid[2,:]))
     index_sorted = np.argsort(np.array(grid[2,:]))
+    np.savetxt('grid_70_steps.txt', np.column_stack([save_chi,save_s,save_q,save_alpha,save_rho]),delimiter=' ',fmt='%f')
 
 
-    n_best = 8
+
+    n_best = 1
     colors = ['magenta', 'green', 'cyan','yellow','blue', 'red','orange']
     if len(colors) < n_best - 1:
         raise ValueError('colors must have at least n_best -1 entries.')
 
 # Plot the grid
 
-    fig, axes = pl.subplots(nrows=1, ncols=2,figsize=(10,10))
+    fig, axes = pl.subplots(nrows=1, ncols=2,figsize=(8,8))
     n_plot = 0
     for i in np.arange(2):
         if i == 0:
@@ -101,14 +112,14 @@ def grid_fit(tnot,unot,tEnot,anot):
 
         chi2 = np.transpose(
                 grid[2, index_grid].reshape(len(index_logs), len(grid_log_q)))
-
+        print(chi2)
         im = axes[i].imshow(
             chi2, aspect='auto', origin='lower',
             extent=[
-                np.min(grid_log_s[index_logs]) - delta_log_s / 2 ,
-                np.max(grid_log_s[index_logs]) + delta_log_s / 2,
-                np.min(grid_log_q) - delta_log_q / 2,
-                np.max(grid_log_q) / 2 ],
+                np.min(grid_log_s[index_logs]),
+                np.max(grid_log_s[index_logs]),
+                np.min(grid_log_q),
+                np.max(grid_log_q)],
             cmap='gray',
             vmin=np.min(grid[2,:]), vmax=np.nanmax(grid[2,np.isfinite(grid[2,:])]))
 
@@ -119,6 +130,9 @@ def grid_fit(tnot,unot,tEnot,anot):
             if index in index_grid:
                 axes[i].scatter(grid[0, index], grid[1, index], marker='o', color=colors[j - 1])
 
+    print(np.min(grid_log_s[index_logs]),np.max(grid_log_s[index_logs]),np.min(grid_log_q),
+    np.max(grid_log_q))
+
     fig.subplots_adjust(right=0.9)
     cbar_ax = fig.add_axes([0.95, 0.15, 0.05, 0.7])
     fig.colorbar(im, cax=cbar_ax)
@@ -127,7 +141,7 @@ def grid_fit(tnot,unot,tEnot,anot):
     fig.text(0.5, 0.04, 'log s', ha='center')
     fig.text(0.04, 0.5, 'log q', va='center', rotation='vertical')
     fig.text(1.1, 0.5, r'$\chi^2$', va='center', rotation='vertical')
-    pl.savefig('grid.png', format='png', dpi=500,orientation='landscape')
+    #pl.savefig('grid_1.png', format='png', dpi=500)
     pl.show()
 
     def make_grid_model(index):
@@ -151,10 +165,11 @@ def grid_fit(tnot,unot,tEnot,anot):
         model = make_grid_model(index)
         model.plot_lc(t_range= [2457900,2458800],subtract_2450000=True, color=colors[j - 1], lw=2)
         best_fit_event.plot_data(subtract_2450000=True, s=10, zorder=0,marker_list = 'o',markerfacecolor='none')
+        pl.xlim(8620,8685)
         print('Other best fit models')
         print(model)
 
-    # Refine the n_best minima to get the best-fit solution
+    print(color.RED +'Refining the n_best minima to get the best-fit solution'+ color.END)
     parameters_to_fit = ['t_0', 'u_0', 't_E', 'rho', 'alpha', 's', 'q'] #mcmc
 
     fits = []
@@ -178,16 +193,16 @@ def grid_fit(tnot,unot,tEnot,anot):
     final_model = mm.Model(parameters)
     final_model.set_magnification_methods(dat.magnification_methods)
     final_event = mm.Event(datasets=[dat.H_data,dat.K_data], model=final_model)
-    print(color.BLUE +'Final best fit model = '+ color.END,final_event.model)
+    print(color.RED +'Final best fit model'+ color.END)
+    print(final_event.model)
     print('chi2: {0}'.format(final_event.get_chi2()))
     pl.figure(figsize=(10,10))
     pl.axes ([0.09 , 0.08 , 0.9 , 0.9])
-    final_event.plot_data (subtract_2450000 = True , label_list =['dat.H_data','dat.K_data'] ,color_list=['red','black'] ,
+    final_event.plot_data (subtract_2450000 = True , label_list =['H_data','K_data'] ,color_list=['red','black'] ,
     zorder_list =[2 , 1] , s =6)
     final_event.plot_model(subtract_2450000 = True , lw=2, color = 'blue',label = 'best fit')
     pl.xlim(8620,8685)
     pl.legend ( loc ='best')
-
     pl.axes([0.17 , 0.7 , 0.3 , 0.2]) # Figure inset stars here .
     final_model.plot_trajectory (caustics = True)
     pl.xlim ( -0.20 , 0.9)
